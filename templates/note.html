@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%224%22 cy=%2212%22 r=%223%22 fill=%22%23268bd2%22/%3E%3Ccircle cx=%2212%22 cy=%224%22 r=%223%22 fill=%22%23859900%22/%3E%3Cpath d=%22M5.5 10.5l5-5%22 stroke=%22%2393a1a1%22 stroke-width=%221.5%22/%3E%3C/svg%3E">
+  <title>{{ graph_name }} · graphynotes</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bulma.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body class="has-navbar-fixed-top">
+
+  <!-- Navbar -->
+  <nav class="navbar is-fixed-top">
+    <div class="navbar-brand">
+      <a class="navbar-item brand-name" href="{{ url_for('index') }}" title="All graphs">graphynotes</a>
+      <span class="navbar-item crumb-sep">/</span>
+      <span class="navbar-item graph-title">{{ graph_name }}</span>
+    </div>
+    <div class="navbar-end">
+      <div class="navbar-item">
+        <span class="save-status" id="save-status" data-state="saved">Saved</span>
+        <div class="export-menu ml-3" id="export-menu">
+          <button class="button is-small" id="export-btn" onclick="toggleExportMenu(event)" aria-haspopup="true">
+            <span class="icon"><i class="fas fa-file-export"></i></span>
+            <span>Export</span>
+            <span class="icon is-small"><i class="fas fa-caret-down"></i></span>
+          </button>
+          <div class="export-dropdown" id="export-dropdown" role="menu">
+            <button class="export-option" onclick="exportGraph('pdf')">
+              <i class="fas fa-file-pdf"></i>
+              <span><b>PDF</b><small>Printable report</small></span>
+            </button>
+            <button class="export-option" onclick="exportGraph('html')">
+              <i class="fas fa-file-code"></i>
+              <span><b>HTML</b><small>Single self-contained page</small></span>
+            </button>
+            <button class="export-option" onclick="exportGraph('md')">
+              <i class="fab fa-markdown"></i>
+              <span><b>Markdown</b><small>.zip with .md and images</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-shell">
+
+    <!-- Left tool sidebar -->
+    <aside class="tool-sidebar">
+      <button class="tool-btn active" id="tool-select" onclick="setMode('select')" title="Select / move (V)">
+        <i class="fas fa-mouse-pointer"></i>
+      </button>
+      <div class="tool-group" id="add-node-group">
+        <button class="tool-btn" id="tool-node" onclick="toggleShapeMenu(event)" title="Add node (N) — or double-click the canvas">
+          <i class="fas fa-plus-circle"></i>
+        </button>
+        <div class="shape-submenu" id="shape-submenu">
+          <button class="submenu-shape active" data-shape="circle"  onclick="selectShape('circle')"><div class="sp sp-circle"></div><span>Circle</span></button>
+          <button class="submenu-shape"        data-shape="rect"    onclick="selectShape('rect')"><div class="sp sp-rect"></div><span>Rectangle</span></button>
+          <button class="submenu-shape"        data-shape="diamond" onclick="selectShape('diamond')"><div class="sp sp-diamond"></div><span>Diamond</span></button>
+          <button class="submenu-shape"        data-shape="hex"     onclick="selectShape('hex')"><div class="sp sp-hex"></div><span>Hexagon</span></button>
+        </div>
+      </div>
+      <button class="tool-btn" id="tool-connect" onclick="setMode('connect')" title="Connect nodes (C)">
+        <i class="fas fa-long-arrow-alt-right"></i>
+      </button>
+      <button class="tool-btn" id="tool-label" onclick="setMode('label')" title="Add text label (L)">
+        <i class="fas fa-font"></i>
+      </button>
+      <button class="tool-btn" id="tool-group" onclick="setMode('group')" title="Group nodes (G)">
+        <i class="fas fa-object-group"></i>
+      </button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" onclick="fitView()" title="Fit graph to view (F)">
+        <i class="fas fa-expand"></i>
+      </button>
+      <button class="tool-btn tool-danger" id="tool-delete" onclick="deleteSelection()" disabled title="Delete selection (Del)">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </aside>
+
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <div class="canvas-area" id="canvas-area"></div>
+      <div class="mode-hint" id="mode-hint"></div>
+      <div class="zoom-indicator" id="zoom-indicator" title="Scroll to zoom, drag background to pan">100%</div>
+    </div>
+
+    <!-- Right properties panel -->
+    <aside class="node-panel">
+      <div class="node-panel-header" id="panel-header">Graph</div>
+      <div class="node-panel-body">
+
+        <!-- Nothing selected -->
+        <div class="panel" id="panel-empty">
+          <p class="panel-hint">Select something on the canvas to edit it.</p>
+          <table class="shortcut-table">
+            <tr><td><kbd>V</kbd></td><td>Select / move</td></tr>
+            <tr><td>Right-click</td><td>Rename node</td></tr>
+            <tr><td><kbd>N</kbd></td><td>Add node (or double-click canvas)</td></tr>
+            <tr><td><kbd>C</kbd></td><td>Connect two nodes</td></tr>
+            <tr><td><kbd>L</kbd></td><td>Add text label</td></tr>
+            <tr><td><kbd>G</kbd></td><td>Group nodes</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Fit to view</td></tr>
+            <tr><td><kbd>Del</kbd></td><td>Delete selection</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel / deselect</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save now</td></tr>
+          </table>
+          <p class="panel-hint mt-3">Drag the background to pan, scroll to zoom. Changes save automatically.</p>
+        </div>
+
+        <!-- Node -->
+        <div class="panel" id="panel-node" hidden>
+          <div class="field">
+            <label class="label is-small" for="node-name">Name</label>
+            <input class="input is-small" id="node-name" type="text" placeholder="Node name">
+          </div>
+          <div class="field">
+            <label class="label is-small">Status</label>
+            <div class="status-row" data-target="node"></div>
+          </div>
+          <div class="field">
+            <label class="label is-small">Shape</label>
+            <div class="shape-row">
+              <button class="shape-dot" data-shape="circle"  onclick="changeShape('circle')"  title="Circle"><div class="sp sp-circle"></div></button>
+              <button class="shape-dot" data-shape="rect"    onclick="changeShape('rect')"    title="Rectangle"><div class="sp sp-rect"></div></button>
+              <button class="shape-dot" data-shape="diamond" onclick="changeShape('diamond')" title="Diamond"><div class="sp sp-diamond"></div></button>
+              <button class="shape-dot" data-shape="hex"     onclick="changeShape('hex')"     title="Hexagon"><div class="sp sp-hex"></div></button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label is-small">Notes</label>
+            <textarea id="description-editor"></textarea>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div class="panel" id="panel-connector" hidden>
+          <p class="panel-hint" id="connector-summary"></p>
+          <div class="field">
+            <label class="label is-small">Status</label>
+            <div class="status-row" data-target="connector"></div>
+          </div>
+          <button class="button is-small is-fullwidth" onclick="reverseConnector()">
+            <span class="icon is-small"><i class="fas fa-exchange-alt"></i></span><span>Reverse direction</span>
+          </button>
+        </div>
+
+        <!-- Label -->
+        <div class="panel" id="panel-label" hidden>
+          <div class="field">
+            <label class="label is-small" for="label-text">Text</label>
+            <input class="input is-small" id="label-text" type="text" placeholder="Label text">
+          </div>
+        </div>
+
+        <!-- Group -->
+        <div class="panel" id="panel-group" hidden>
+          <div class="field">
+            <label class="label is-small" for="group-name">Group name</label>
+            <input class="input is-small" id="group-name" type="text" placeholder="Group name">
+          </div>
+          <p class="panel-hint">Drag the group to move all its nodes; use the handles to resize.</p>
+          <button class="button is-small is-fullwidth btn-danger-outline" onclick="ungroupSelected()">
+            <span class="icon is-small"><i class="fas fa-object-ungroup"></i></span><span>Ungroup</span>
+          </button>
+        </div>
+
+        <!-- Group creation -->
+        <div class="panel" id="panel-group-create" hidden>
+          <p class="panel-hint">Click nodes to add or remove them from the new group.</p>
+          <p class="group-count" id="group-selection-count">0 nodes selected</p>
+          <button class="button is-primary is-small is-fullwidth" id="confirm-group" onclick="confirmCreateGroup()" disabled>
+            <span class="icon is-small"><i class="fas fa-check"></i></span><span>Create group</span>
+          </button>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>window.GRAPH_NAME = {{ graph_name|tojson }};</script>
+  <script src="{{ url_for('static', filename='vendor/konva.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/easymde.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/vectors.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+</body>
+</html>

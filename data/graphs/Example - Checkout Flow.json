@@ -1,0 +1,277 @@
+{
+ "nodes": [
+  {
+   "description": "Anonymous or logged-in shopper using the web storefront.",
+   "id": "n1",
+   "name": "Customer",
+   "shape": "circle",
+   "status": "default",
+   "x": 60,
+   "y": 250
+  },
+  {
+   "description": "Product listing + search.\n\n- Served from CDN cache (5 min TTL)\n- `GET /api/products?q=...&page=...`",
+   "id": "n2",
+   "name": "Browse catalog",
+   "shape": "rect",
+   "status": "pass",
+   "x": 200,
+   "y": 250
+  },
+  {
+   "description": "Email + password form. Redirects back to the cart after login.\n\n> CSRF token is embedded in the form.\n\n",
+   "id": "n3",
+   "name": "Login form",
+   "shape": "rect",
+   "status": "pass",
+   "x": 720,
+   "y": 120
+  },
+  {
+   "description": "Cart lives in `localStorage` until login, then syncs to the server.",
+   "id": "n4",
+   "name": "Cart",
+   "shape": "rect",
+   "status": "pass",
+   "x": 370,
+   "y": 250
+  },
+  {
+   "description": "**Not started.** Should show order number, summary and send a confirmation email.",
+   "id": "n5",
+   "name": "Order confirmation",
+   "shape": "rect",
+   "status": "default",
+   "x": 560,
+   "y": 540
+  },
+  {
+   "description": "Checks for a valid session cookie before checkout.\n\n- **yes** \u2192 checkout\n- **no** \u2192 login form",
+   "id": "n6",
+   "name": "Logged in?",
+   "shape": "diamond",
+   "status": "pass",
+   "x": 540,
+   "y": 250
+  },
+  {
+   "description": "```http\nPOST /api/login\nContent-Type: application/json\n\n{\"email\": \"...\", \"password\": \"...\"}\n```\n\nRate limited to 5 attempts / minute per IP.",
+   "id": "n7",
+   "name": "POST /api/login",
+   "shape": "rect",
+   "status": "pass",
+   "x": 880,
+   "y": 120
+  },
+  {
+   "description": "bcrypt, cost factor 12.\n\n```python\nif not bcrypt.checkpw(password.encode(), user.pw_hash):\n    abort(401)\n```",
+   "id": "n8",
+   "name": "Verify password",
+   "shape": "rect",
+   "status": "pass",
+   "x": 1040,
+   "y": 120
+  },
+  {
+   "description": "Sets an `HttpOnly`, `SameSite=Lax` session cookie (JWT, 15 min).\n\n**TODO:** refresh tokens \u2014 users are logged out mid-checkout after 15 minutes.",
+   "id": "n9",
+   "name": "Issue session",
+   "shape": "rect",
+   "status": "todo",
+   "x": 960,
+   "y": 250
+  },
+  {
+   "description": "Creates the order, then charges the card.\n\n| Step | State |\n|---|---|\n| Validate cart | done |\n| Reserve stock | done |\n| Charge card | **blocked** (see Payment provider) |\n| Write order | done |",
+   "id": "n10",
+   "name": "POST /api/checkout",
+   "shape": "rect",
+   "status": "todo",
+   "x": 720,
+   "y": 400
+  },
+  {
+   "description": "PostgreSQL `users` table. Read-only replica used for login lookups.",
+   "id": "n11",
+   "name": "Users DB",
+   "shape": "hex",
+   "status": "pass",
+   "x": 1200,
+   "y": 120
+  },
+  {
+   "description": "PostgreSQL `orders` + `order_items`. Written in a single transaction.",
+   "id": "n12",
+   "name": "Orders DB",
+   "shape": "hex",
+   "status": "pass",
+   "x": 900,
+   "y": 400
+  },
+  {
+   "description": "External card processor.\n\n**Broken:** webhook signature verification fails in staging.\n\n```\n400 Bad Request: signature mismatch (timestamp outside tolerance)\n```\n\nLikely clock skew on the staging box \u2014 check NTP.",
+   "id": "n13",
+   "name": "Payment provider",
+   "shape": "hex",
+   "status": "failed",
+   "x": 900,
+   "y": 540
+  }
+ ],
+ "connectors": [
+  {
+   "from": "n1",
+   "id": "c1",
+   "status": "default",
+   "to": "n2"
+  },
+  {
+   "from": "n2",
+   "id": "c2",
+   "status": "default",
+   "to": "n4"
+  },
+  {
+   "from": "n4",
+   "id": "c3",
+   "status": "default",
+   "to": "n6"
+  },
+  {
+   "from": "n6",
+   "id": "c4",
+   "status": "default",
+   "to": "n3"
+  },
+  {
+   "from": "n6",
+   "id": "c5",
+   "status": "default",
+   "to": "n10"
+  },
+  {
+   "from": "n3",
+   "id": "c6",
+   "status": "default",
+   "to": "n7"
+  },
+  {
+   "from": "n7",
+   "id": "c7",
+   "status": "default",
+   "to": "n8"
+  },
+  {
+   "from": "n8",
+   "id": "c8",
+   "status": "default",
+   "to": "n11"
+  },
+  {
+   "from": "n8",
+   "id": "c9",
+   "status": "default",
+   "to": "n9"
+  },
+  {
+   "from": "n9",
+   "id": "c10",
+   "status": "todo",
+   "to": "n6"
+  },
+  {
+   "from": "n10",
+   "id": "c11",
+   "status": "default",
+   "to": "n12"
+  },
+  {
+   "from": "n10",
+   "id": "c12",
+   "status": "failed",
+   "to": "n13"
+  },
+  {
+   "from": "n10",
+   "id": "c13",
+   "status": "default",
+   "to": "n5"
+  }
+ ],
+ "labels": [
+  {
+   "id": "lb1",
+   "text": "Checkout flow: storefront v2",
+   "x": 40,
+   "y": 40
+  },
+  {
+   "id": "lb2",
+   "text": "green = working \u00b7 yellow = in progress \u00b7 red = broken \u00b7 grey = not started",
+   "x": 40,
+   "y": 66
+  },
+  {
+   "id": "lb3",
+   "text": "no",
+   "x": 600,
+   "y": 160
+  },
+  {
+   "id": "lb4",
+   "text": "yes",
+   "x": 640,
+   "y": 315
+  },
+  {
+   "id": "lb5",
+   "text": "session valid",
+   "x": 700,
+   "y": 230
+  }
+ ],
+ "groups": [
+  {
+   "height": 84,
+   "id": "g1",
+   "name": "Storefront",
+   "nodeIds": [
+    "n2",
+    "n4",
+    "n6"
+   ],
+   "width": 480,
+   "x": 130,
+   "y": 210
+  },
+  {
+   "height": 214,
+   "id": "g2",
+   "name": "Authentication",
+   "nodeIds": [
+    "n3",
+    "n7",
+    "n8",
+    "n11",
+    "n9"
+   ],
+   "width": 620,
+   "x": 650,
+   "y": 80
+  },
+  {
+   "height": 224,
+   "id": "g3",
+   "name": "Checkout",
+   "nodeIds": [
+    "n10",
+    "n12",
+    "n13",
+    "n5"
+   ],
+   "width": 480,
+   "x": 490,
+   "y": 360
+  }
+ ]
+}

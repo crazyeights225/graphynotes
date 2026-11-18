@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%224%22 cy=%2212%22 r=%223%22 fill=%22%23268bd2%22/%3E%3Ccircle cx=%2212%22 cy=%224%22 r=%223%22 fill=%22%23859900%22/%3E%3Cpath d=%22M5.5 10.5l5-5%22 stroke=%22%2393a1a1%22 stroke-width=%221.5%22/%3E%3C/svg%3E">
+  <title>graphynotes</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bulma.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body class="has-navbar-fixed-top">
+
+  <nav class="navbar is-fixed-top">
+    <div class="navbar-brand">
+      <span class="navbar-item brand-name">graphynotes</span>
+    </div>
+  </nav>
+
+  <main class="home">
+    <h1 class="page-title">Notes</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% for m in messages %}
+        <div class="flash-error"><i class="fas fa-exclamation-circle"></i> {{ m }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form action="{{ url_for('new_graph') }}" method="post" class="create-row">
+      <input class="input" type="text" name="name" placeholder="New graph name…" required
+             maxlength="64" pattern="[\w][\w .\-]*" autofocus
+             title="Letters, numbers, spaces, '.', '_' or '-'">
+      <button class="button is-primary" type="submit">
+        <span class="icon"><i class="fas fa-plus"></i></span><span>Create</span>
+      </button>
+    </form>
+
+    {% if graphs %}
+    <ul class="graph-cards">
+      {% for g in graphs %}
+      <li class="graph-card">
+        <a class="graph-card-link" href="{{ url_for('editor', graph=g.name) }}">
+          <span class="graph-card-icon"><i class="fas fa-project-diagram"></i></span>
+          <span class="graph-card-text">
+            <span class="graph-card-name">{{ g.name }}</span>
+            <span class="graph-card-meta">{{ g.nodes }} node{{ '' if g.nodes == 1 else 's' }} · {{ g.connectors }} connector{{ '' if g.connectors == 1 else 's' }}{% if g.modified %} · edited {{ g.modified }}{% endif %}</span>
+          </span>
+        </a>
+        <form action="{{ url_for('delete_graph') }}" method="post"
+              onsubmit='return confirm({{ ("Delete graph \"" ~ g.name ~ "\"? This cannot be undone.")|tojson }})'>
+          <input type="hidden" name="name" value="{{ g.name }}">
+          <button class="graph-card-delete" type="submit" title="Delete graph"><i class="fas fa-trash-alt"></i></button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-hint">No graphs yet — create one above.</p>
+    {% endif %}
+  </main>
+
+</body>
+</html>
